@@ -1,20 +1,275 @@
 import React, { useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { AppProvider, useApp } from './store/AppContext';
-import { ShoppingBag, Star, User, Home as HomeIcon, Coins, MessageSquare, ChevronLeft, ArrowRight, Filter, Search, Globe, MapPin } from 'lucide-react';
+import { ShoppingBag, Star, User, Home as HomeIcon, Coins, MessageSquare, ChevronLeft, ArrowRight, Filter, Search, Globe, MapPin, Heart, Bell, Shield, LogOut, TrendingUp, DollarSign, Key, CheckCircle2, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
-import { Product } from './types';
+import { Product, Message, VeloNotification } from './types';
 import { Language } from './lib/translations';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+} from 'recharts';
 
 // --- Shared Components ---
 
+const SearchModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  const { products } = useApp();
+  const [query, setQuery] = useState('');
+  
+  const results = products.filter(p => 
+    p.name.toLowerCase().includes(query.toLowerCase()) || 
+    p.category.toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 5);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-12">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/90 backdrop-blur-xl" />
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-2xl bg-bg-secondary border border-border rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+         <div className="p-8 border-b border-border flex items-center gap-4">
+            <Search className="text-accent" size={24} />
+            <input 
+              autoFocus
+              placeholder="Search the protocol..."
+              className="flex-1 bg-transparent text-xl font-bold text-white focus:outline-none placeholder:text-zinc-700"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+         </div>
+         <div className="p-4">
+            <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest p-4 pb-2">Artifact Suggestions</p>
+            {results.length > 0 ? results.map(p => (
+              <button key={p.id} onClick={onClose} className="w-full text-left p-4 rounded-2xl hover:bg-zinc-800/50 flex items-center justify-between group transition-colors">
+                 <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-bg-primary overflow-hidden border border-border">
+                       <img src={p.image} className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                       <h4 className="text-white font-bold">{p.name}</h4>
+                       <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{p.category}</p>
+                    </div>
+                 </div>
+                 <span className="text-accent font-mono font-bold">${p.price}</span>
+              </button>
+            )) : (
+              <p className="p-8 text-center text-zinc-600 italic">No artifacts matching query</p>
+            )}
+         </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const NotificationsPanel = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  const { notifications, markNotificationRead, clearNotifications, user } = useApp();
+  const myNotifs = notifications.filter(n => n.userId === user?.id);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-y-0 right-0 z-[100] w-full max-w-md bg-bg-secondary border-l border-border shadow-2xl overflow-hidden flex flex-col">
+       <div className="p-8 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <Bell className="text-accent" size={20} />
+             <h3 className="text-xl font-bold text-white tracking-tighter">Transmission Log</h3>
+          </div>
+          <button onClick={clearNotifications} className="text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-red-500">Purge Log</button>
+       </div>
+       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {myNotifs.length > 0 ? myNotifs.map(n => (
+            <div key={n.id} onClick={() => markNotificationRead(n.id)} className={cn("p-6 rounded-[2rem] border transition-all cursor-pointer relative", n.isRead ? "bg-bg-primary border-border opacity-60" : "bg-accent/5 border-accent/20")}>
+               <div className="flex justify-between items-start mb-2">
+                  <span className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border", n.type === 'order' ? "text-green-500 border-green-500/20" : "text-blue-500 border-blue-500/20")}>{n.type}</span>
+                  <span className="text-[9px] text-zinc-600 font-mono">{new Date(n.timestamp).toLocaleTimeString()}</span>
+               </div>
+               <h4 className="text-white font-bold text-sm mb-1">{n.title}</h4>
+               <p className="text-zinc-500 text-xs leading-relaxed">{n.message}</p>
+               {!n.isRead && <div className="absolute top-6 right-6 w-2 h-2 bg-accent rounded-full" />}
+            </div>
+          )) : (
+            <div className="h-full flex flex-col items-center justify-center opacity-20">
+               <Bell size={48} className="mb-4" />
+               <p className="font-black uppercase tracking-widest text-xs font-mono italic">No transmissions found</p>
+            </div>
+          )}
+       </div>
+       <div className="p-6 border-t border-border">
+          <button onClick={onClose} className="w-full bg-accent text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs">Acknowledge</button>
+       </div>
+    </div>
+  );
+};
+
+const Messaging = () => {
+  const { user, messages, users, sendMessage } = useApp();
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [text, setText] = useState('');
+
+  if (!user) return null;
+
+  const contacts = users.filter(u => u.id !== user.id);
+  const activeChatMessages = messages.filter(m => 
+    (m.senderId === user.id && m.receiverId === selectedUser) || 
+    (m.senderId === selectedUser && m.receiverId === user.id)
+  ).sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 md:px-8 h-[calc(100vh-12rem)] flex gap-6">
+       <div className="w-80 bg-bg-secondary border border-border rounded-[2.5rem] flex flex-col overflow-hidden">
+          <div className="p-6 border-b border-border">
+             <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                <MessageSquare size={18} className="text-accent" /> Active Nodes
+             </h3>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+             {contacts.map(contact => (
+               <button 
+                 key={contact.id} 
+                 onClick={() => setSelectedUser(contact.id)}
+                 className={cn(
+                   "w-full p-4 rounded-2xl flex items-center gap-4 transition-all text-left",
+                   selectedUser === contact.id ? "bg-accent/10 border border-accent/20" : "hover:bg-bg-primary border border-transparent"
+                 )}
+               >
+                  <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-zinc-400 capitalize">
+                     {contact.email.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                     <p className="text-white font-bold text-sm truncate">{contact.email.split('@')[0]}</p>
+                     <p className="text-[10px] text-zinc-600 uppercase tracking-widest">{contact.role}</p>
+                  </div>
+                  {contact.pgpPublicKey && <Lock size={10} className="text-accent opacity-40" />}
+               </button>
+             ))}
+          </div>
+       </div>
+
+       <div className="flex-1 bg-bg-secondary border border-border rounded-[2.5rem] flex flex-col overflow-hidden">
+          {selectedUser ? (
+            <>
+              <div className="p-6 border-b border-border flex items-center justify-between bg-accent/5">
+                 <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-accent capitalize">
+                       {users.find(u => u.id === selectedUser)?.email.charAt(0)}
+                    </div>
+                    <div>
+                       <h3 className="text-lg font-bold text-white tracking-tight">{users.find(u => u.id === selectedUser)?.email}</h3>
+                       <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                          <span className="text-[10px] text-green-500 font-black uppercase tracking-widest">Protocol Active</span>
+                       </div>
+                    </div>
+                 </div>
+                 {users.find(u => u.id === selectedUser)?.pgpPublicKey && (
+                   <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-lg">
+                      <Lock size={12} className="text-accent" />
+                      <span className="text-[9px] font-black text-accent uppercase tracking-widest">E2E Encrypted</span>
+                   </div>
+                 )}
+              </div>
+              <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                 {activeChatMessages.map(msg => (
+                   <div key={msg.id} className={cn("flex flex-col max-w-[70%]", msg.senderId === user.id ? "ml-auto items-end" : "mr-auto items-start")}>
+                      <div className={cn("p-4 rounded-2xl text-xs leading-relaxed font-mono whitespace-pre-wrap break-words", msg.senderId === user.id ? "bg-accent text-black font-bold" : "bg-bg-primary border border-border text-zinc-300")}>
+                         {msg.content}
+                      </div>
+                      <span className="text-[9px] text-zinc-600 mt-2 flex items-center gap-1">
+                         {new Date(msg.timestamp).toLocaleTimeString()}
+                         {msg.isEncrypted && <Lock size={8} />}
+                      </span>
+                   </div>
+                 ))}
+                 {activeChatMessages.length === 0 && (
+                   <div className="h-full flex flex-col items-center justify-center opacity-20">
+                      <Lock size={48} className="mb-4" />
+                      <p className="font-black uppercase tracking-widest text-xs">Initialize secure transmission session</p>
+                   </div>
+                 )}
+              </div>
+              <div className="p-6 border-t border-border bg-bg-primary/50">
+                 <form 
+                   onSubmit={(e) => {
+                     e.preventDefault();
+                     if (!text) return;
+                     sendMessage(selectedUser, text);
+                     setText('');
+                   }}
+                   className="flex gap-4"
+                 >
+                    <input 
+                      placeholder="Transmit message..."
+                      className="flex-1 bg-bg-secondary border border-border rounded-xl p-4 text-white text-sm focus:outline-none focus:border-accent transition-colors"
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                    />
+                    <button className="bg-accent text-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white transition-all shadow-lg shadow-accent/20">Transmit</button>
+                 </form>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center opacity-20">
+               <MessageSquare size={80} className="mb-6" />
+               <p className="text-xl font-black uppercase tracking-[0.3em]">Selection Required</p>
+               <p className="text-xs mt-2 italic font-mono">Select a node from the registry to begin encrypted synthesis</p>
+            </div>
+          )}
+       </div>
+    </div>
+  );
+};
+
+const WishlistView = () => {
+  const { user, products, toggleWishlist } = useApp();
+  const wishlistItems = products.filter(p => user?.wishlist.includes(p.id));
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-16">
+       <div className="mb-12">
+          <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tighter">Node <span className="text-accent italic">Wishlist.</span></h1>
+          <p className="text-zinc-600 text-sm font-mono mt-2 uppercase tracking-widest">Cached artifacts for future integration</p>
+       </div>
+
+       {wishlistItems.length === 0 ? (
+         <div className="py-40 text-center bg-bg-secondary/30 rounded-[3rem] border border-dashed border-border flex flex-col items-center">
+            <Heart size={48} className="text-zinc-800 mb-6" />
+            <p className="text-zinc-600 font-bold uppercase tracking-widest">No artifacts cached in wishlist</p>
+         </div>
+       ) : (
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {wishlistItems.map(p => (
+              <div key={p.id} className="bg-bg-secondary border border-border p-6 rounded-[2.5rem] relative group">
+                 <button onClick={() => toggleWishlist(p.id)} className="absolute top-8 right-8 z-10 p-3 bg-red-500/20 text-red-500 rounded-full border border-red-500/20 hover:scale-110 transition-transform">
+                    <Heart size={16} fill="currentColor" />
+                 </button>
+                 <div className="aspect-square bg-bg-primary rounded-2xl overflow-hidden mb-6">
+                    <img src={p.image} className="w-full h-full object-cover grayscale opacity-60" />
+                 </div>
+                 <h4 className="text-white font-bold text-xl mb-1">{p.name}</h4>
+                 <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-accent font-black uppercase tracking-widest">{p.category}</span>
+                    <span className="text-white font-mono font-bold">${p.price}</span>
+                 </div>
+              </div>
+            ))}
+         </div>
+       )}
+    </div>
+  );
+};
+
 const Navbar = ({ onViewChange, currentView }: { onViewChange: (v: string) => void, currentView: string }) => {
-  const { user, t, language, setLanguage, logout } = useApp();
+  const { user, t, language, setLanguage, logout, messages, notifications } = useApp();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  const unreadMessages = messages.filter(m => m.receiverId === user?.id && !m.isRead).length;
+  const unreadNotifs = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
   
   if (!user) return null;
 
   return (
+    <>
     <nav className="sticky top-0 z-50 w-full bg-bg-secondary/80 backdrop-blur-md border-b border-border px-4 md:px-8 h-16 flex items-center justify-between">
       <div 
         className="flex items-center gap-4 md:gap-6 cursor-pointer group" 
@@ -41,27 +296,27 @@ const Navbar = ({ onViewChange, currentView }: { onViewChange: (v: string) => vo
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-8">
-        <div className="flex space-x-4 md:space-x-6 text-xs md:text-sm font-medium text-zinc-500">
-          <button 
-            onClick={() => onViewChange('home')}
-            className={cn(
-              "transition-colors hover:text-white",
-              currentView === 'home' ? "text-white" : "text-zinc-500"
-            )}
-          >
-            {t.marketplace}
-          </button>
-          <button 
-            onClick={() => onViewChange('profile')}
-            className={cn(
-              "transition-colors hover:text-white",
-              currentView === 'profile' || currentView === 'review' ? "text-white" : "text-zinc-500"
-            )}
-          >
-            <span className="md:inline hidden">{t.myAccount}</span>
-            <span className="md:hidden inline">Profile</span>
-          </button>
+      <div className="flex items-center gap-2 md:gap-6">
+        <div className="hidden lg:flex items-center space-x-6 text-xs md:text-sm font-medium text-zinc-500">
+          {[
+            { id: 'home', label: t.marketplace, icon: null },
+            { id: 'messages', label: 'Messages', icon: <MessageSquare size={14} />, badge: unreadMessages },
+            { id: 'wishlist', label: 'Wishlist', icon: <Heart size={14} />, badge: 0 },
+            { id: 'profile', label: t.myAccount, icon: <User size={14} /> },
+          ].map(item => (
+            <button 
+              key={item.id}
+              onClick={() => onViewChange(item.id)}
+              className={cn(
+                "transition-colors hover:text-white flex items-center gap-2 relative",
+                currentView === item.id ? "text-white" : "text-zinc-500"
+              )}
+            >
+              {item.icon}
+              {item.label}
+              {item.badge ? <span className="absolute -top-2 -right-3 bg-accent text-black text-[8px] font-black px-1 rounded-full">{item.badge}</span> : null}
+            </button>
+          ))}
           
           {user?.role === 'reseller' && (
             <button 
@@ -79,16 +334,25 @@ const Navbar = ({ onViewChange, currentView }: { onViewChange: (v: string) => vo
             <button 
               onClick={() => onViewChange('admin')}
               className={cn(
-                "transition-colors hover:text-accent flex items-center gap-2",
-                currentView === 'admin' ? "text-accent" : "text-zinc-500"
+                "transition-colors hover:text-red-500 flex items-center gap-2",
+                currentView === 'admin' ? "text-red-500" : "text-zinc-500"
               )}
             >
-              <ShoppingBag size={14} /> <span className="hidden sm:inline">Admin</span>
+              <Shield size={14} /> <span className="hidden sm:inline">Admin</span>
             </button>
           )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 pl-2 md:pl-4 border-l border-border">
+          <button onClick={() => setIsSearchOpen(true)} className="p-2 text-zinc-500 hover:text-white transition-colors">
+             <Search size={18} />
+          </button>
+          
+          <button onClick={() => setIsNotifOpen(true)} className="p-2 text-zinc-500 hover:text-white transition-colors relative">
+             <Bell size={18} />
+             {unreadNotifs > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
+          </button>
+
           <div className="bg-zinc-900 rounded-full px-3 md:px-4 py-1 md:py-1.5 flex items-center space-x-1 md:space-x-2 border border-zinc-800">
             <div className="w-4 h-4 md:w-5 md:h-5 bg-accent rounded-full flex items-center justify-center text-[9px] md:text-[10px] font-bold text-black">$</div>
             <span className="text-accent font-mono font-bold text-xs md:text-base tracking-tight">
@@ -97,14 +361,16 @@ const Navbar = ({ onViewChange, currentView }: { onViewChange: (v: string) => vo
           </div>
           <button 
              onClick={logout}
-             className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center transition-transform active:scale-95 group relative"
+             className="p-2 text-zinc-500 hover:text-red-500 transition-colors"
           >
-            <User size={16} className="text-zinc-300" />
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-bg-primary"></div>
+            <LogOut size={18} />
           </button>
         </div>
       </div>
     </nav>
+    <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+    <NotificationsPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+    </>
   );
 };
 
@@ -248,7 +514,7 @@ const Auth = () => {
 // --- Pages ---
 
 const Home = ({ onProductSelect }: { onProductSelect: (id: string) => void }) => {
-  const { products, t } = useApp();
+  const { products, t, user, toggleWishlist } = useApp();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
@@ -381,9 +647,18 @@ const Home = ({ onProductSelect }: { onProductSelect: (id: string) => void }) =>
               layout
               key={product.id}
               whileHover={{ y: -8 }}
-              className="group cursor-pointer"
+              className="group cursor-pointer relative"
               onClick={() => onProductSelect(product.id)}
             >
+              <button 
+                onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
+                className={cn(
+                  "absolute top-4 right-4 z-20 p-2.5 rounded-xl border transition-all",
+                  user?.wishlist.includes(product.id) ? "bg-accent border-accent text-black" : "bg-black/40 backdrop-blur border-white/10 text-white/40 hover:text-white"
+                )}
+              >
+                <Heart size={14} fill={user?.wishlist.includes(product.id) ? "currentColor" : "none"} />
+              </button>
               <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-bg-secondary border border-border mb-6">
                 <img 
                   src={product.image} 
@@ -403,6 +678,13 @@ const Home = ({ onProductSelect }: { onProductSelect: (id: string) => void }) =>
                     <span className="text-white font-mono font-bold">${product.price}</span>
                   </div>
                 </div>
+                {product.isFeatured && (
+                   <div className="absolute top-6 left-6 rotate-[-15deg] origin-top-left -translate-x-2 -translate-y-2">
+                       <div className="bg-accent text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-accent/20 border-2 border-black/20">
+                          ELITE
+                       </div>
+                   </div>
+                )}
               </div>
               <div className="flex flex-col gap-1.5 px-2">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-accent font-black">{product.category}</span>
@@ -417,12 +699,21 @@ const Home = ({ onProductSelect }: { onProductSelect: (id: string) => void }) =>
   );
 };
 
-const ProductDetail = ({ productId, onBack }: { productId: string, onBack: () => void }) => {
-  const { products, buyProduct, getReviewsForProduct, user, t } = useApp();
+const ProductDetail = ({ productId, onBack, onContactSeller }: { productId: string, onBack: () => void, onContactSeller: (sellerId: string) => void }) => {
+  const { products, buyProduct, getReviewsForProduct, user, users, toggleWishlist, t } = useApp();
   const product = products.find(p => p.id === productId);
   const reviews = getReviewsForProduct(productId);
-  
+  const seller = users.find(u => u.id === product?.sellerId);
+
   if (!product) return null;
+
+  const chartData = [
+    { name: 'Node-1', price: product.price * 1.2 },
+    { name: 'Node-2', price: product.price * 1.15 },
+    { name: 'Node-3', price: product.price * 1.3 },
+    { name: 'Node-4', price: product.price * 1.1 },
+    { name: 'Final', price: product.price },
+  ];
 
   return (
     <motion.div 
@@ -430,13 +721,25 @@ const ProductDetail = ({ productId, onBack }: { productId: string, onBack: () =>
       animate={{ opacity: 1 }}
       className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-16"
     >
-      <button 
-        onClick={onBack}
-        className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-white mb-8 md:mb-12 transition-colors group"
-      >
-        <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-        {t.catalog}
-      </button>
+      <div className="flex items-center justify-between mb-8 md:mb-12">
+        <button 
+          onClick={onBack}
+          className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors group"
+        >
+          <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+          {t.catalog}
+        </button>
+        <button 
+          onClick={() => toggleWishlist(product.id)}
+          className={cn(
+             "p-3 rounded-xl border transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest leading-none",
+             user?.wishlist.includes(product.id) ? "bg-accent border-accent text-black" : "bg-bg-secondary border-border text-zinc-500 hover:text-white"
+          )}
+        >
+           <Heart size={14} fill={user?.wishlist.includes(product.id) ? "currentColor" : "none"} />
+           {user?.wishlist.includes(product.id) ? 'Cached In Node' : 'Cache Artifact'}
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-20 mb-20 md:mb-32">
         <div className="rounded-[2rem] md:rounded-[2.5rem] overflow-hidden bg-bg-secondary border border-border aspect-square relative shadow-2xl">
@@ -445,8 +748,15 @@ const ProductDetail = ({ productId, onBack }: { productId: string, onBack: () =>
         </div>
 
         <div className="flex flex-col justify-center">
-          <div className="inline-flex px-4 py-1 rounded-full border border-accent/30 bg-accent/5 text-[10px] text-accent font-black uppercase tracking-[0.2em] w-fit mb-6 md:mb-8">
-            {t.product.pioneer}
+          <div className="flex items-center gap-3 mb-6 md:mb-8">
+            <div className="px-4 py-1 rounded-full border border-accent/30 bg-accent/5 text-[10px] text-accent font-black uppercase tracking-[0.2em] w-fit">
+              {t.product.pioneer}
+            </div>
+            {seller && (
+               <div className="px-4 py-1 rounded-full border border-border bg-bg-secondary text-[10px] text-zinc-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                  <Star size={10} className="text-accent" /> Node Reputation: {seller.reputation}%
+               </div>
+            )}
           </div>
           <h1 className="text-4xl md:text-7xl font-bold text-white tracking-tighter mb-4 md:mb-6">{product.name}</h1>
           <p className="text-lg md:text-xl text-zinc-400 mb-8 md:mb-12 leading-relaxed font-light">{product.description}</p>
@@ -455,24 +765,54 @@ const ProductDetail = ({ productId, onBack }: { productId: string, onBack: () =>
             <span className="text-3xl md:text-5xl font-bold text-white tracking-tighter">${product.price}</span>
             <div className="h-8 md:h-10 w-[1px] bg-border"></div>
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Standard Price</span>
+              <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Protocol Value</span>
               <span className="text-zinc-600 line-through font-mono text-sm md:text-base">${Math.round(product.price * 1.2)}</span>
             </div>
           </div>
 
-          <button 
-            onClick={() => buyProduct(product.id)}
-            className="w-full bg-white text-black py-5 md:py-6 rounded-2xl font-black md:text-lg tracking-tight hover:bg-zinc-200 transition-all shadow-2xl active:scale-[0.98] flex items-center justify-center gap-3"
-          >
-            <span>{t.product.purchase}</span>
-            <ArrowRight size={20} />
-          </button>
+          <div className="flex gap-4">
+             <button 
+               onClick={() => buyProduct(product.id)}
+               className="flex-1 bg-white text-black py-5 md:py-6 rounded-2xl font-black md:text-lg tracking-tight hover:bg-zinc-200 transition-all shadow-2xl active:scale-[0.98] flex items-center justify-center gap-3"
+             >
+               <span>{t.product.purchase}</span>
+               <ArrowRight size={20} />
+             </button>
+             {seller && seller.id !== user?.id && (
+                <button 
+                  onClick={() => onContactSeller(seller.id)}
+                  className="px-6 bg-bg-secondary border border-border text-white rounded-2xl hover:bg-zinc-800 transition-colors"
+                  title="Contact Seller"
+                >
+                   <MessageSquare size={24} />
+                </button>
+             )}
+          </div>
 
           <div className="mt-6 md:mt-8 flex items-center gap-3 text-[10px] md:text-xs text-accent font-bold uppercase tracking-widest">
             <Coins size={16} />
             <span>+50 ${t.veloCoins} {t.product.bounty}</span>
           </div>
         </div>
+      </div>
+
+      <div className="mb-20 md:mb-32">
+         <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight mb-8">Value <span className="text-accent italic">Trajectory.</span></h2>
+         <div className="h-[300px] md:h-[400px] w-full bg-bg-secondary border border-border rounded-[3rem] p-8 md:p-12 overflow-hidden relative">
+            <ResponsiveContainer width="100%" height="100%">
+               <LineChart data={chartData}>
+                  <Line type="monotone" dataKey="price" stroke="#ff4757" strokeWidth={3} dot={{ fill: '#ff4757', r: 6 }} activeDot={{ r: 8, stroke: '#000', strokeWidth: 2 }} />
+                  <CartesianGrid stroke="#27272a" strokeDasharray="5 5" vertical={false} />
+                  <XAxis dataKey="name" hide />
+                  <YAxis hide domain={['dataMin - 20', 'dataMax + 20']} />
+                  <Tooltip 
+                    contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '12px' }}
+                    itemStyle={{ color: '#ff4757', fontWeight: 'bold' }}
+                    labelStyle={{ color: '#52525b', fontSize: '10px', textTransform: 'uppercase' }}
+                  />
+               </LineChart>
+            </ResponsiveContainer>
+         </div>
       </div>
 
       <div className="mt-20 md:mt-40">
@@ -1157,6 +1497,7 @@ const AdminPanel = () => {
       <div className="flex gap-2 md:gap-4 mb-8 md:mb-12 overflow-x-auto pb-4 no-scrollbar">
         {[
           { id: 'transactions', label: 'Signals', icon: <Coins size={14} /> },
+          { id: 'economy', label: 'Economy', icon: <DollarSign size={14} /> },
           { id: 'products', label: 'Artifacts', icon: <ShoppingBag size={14} /> },
           { id: 'disputes', label: 'Conflicts', icon: <Filter size={14} /> },
           { id: 'reviews', label: 'Audits', icon: <MessageSquare size={14} /> },
@@ -1229,6 +1570,65 @@ const AdminPanel = () => {
                  ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {tab === 'economy' && (
+          <div className="space-y-6 md:space-y-10 relative">
+             <h3 className="text-white font-bold mb-4 md:mb-8 flex items-center gap-3 text-lg md:text-xl tracking-tight">
+               <DollarSign size={20} className="text-accent" /> Protocol Economics
+             </h3>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                   { label: 'Total Supply', value: users.reduce((acc, u) => acc + u.veloCoins, 0), icon: <Coins size={18} /> },
+                   { label: 'Gross Volume', value: orders.reduce((acc, o) => acc + o.total, 0), icon: <TrendingUp size={18} /> },
+                   { label: 'Avg Transaction', value: orders.length ? Math.round(orders.reduce((acc, o) => acc + o.total, 0) / orders.length) : 0, icon: <DollarSign size={18} /> },
+                ].map((stat, i) => (
+                   <div key={i} className="bg-bg-primary border border-border p-8 rounded-[2.5rem]">
+                      <div className="flex items-center gap-3 text-accent mb-4 opacity-50">
+                         {stat.icon}
+                         <span className="text-[10px] font-black uppercase tracking-widest">{stat.label}</span>
+                      </div>
+                      <p className="text-4xl font-bold text-white tracking-tighter">${stat.value.toLocaleString()}</p>
+                   </div>
+                ))}
+             </div>
+             
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-bg-primary border border-border p-8 rounded-[3rem]">
+                   <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-6">High Value Signals</p>
+                   <div className="space-y-3">
+                      {orders.sort((a,b) => b.total - a.total).slice(0, 5).map(o => (
+                         <div key={o.id} className="flex items-center justify-between p-4 bg-bg-secondary border border-border rounded-xl">
+                            <div className="flex items-center gap-4">
+                               <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+                                  <TrendingUp size={12} />
+                               </div>
+                               <p className="text-white text-xs font-mono font-bold">U-{o.userId.slice(0, 8)}</p>
+                            </div>
+                            <span className="text-accent font-mono font-black py-1 px-3 bg-accent/5 rounded-lg text-xs">${o.total}</span>
+                         </div>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="bg-bg-primary border border-border p-8 rounded-[3rem]">
+                   <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-6">Currency Distribution</p>
+                   <div className="space-y-3">
+                      {users.sort((a,b) => b.veloCoins - a.veloCoins).slice(0, 5).map(u => (
+                         <div key={u.id} className="flex items-center justify-between p-4 bg-bg-secondary border border-border rounded-xl">
+                            <div className="flex items-center gap-4">
+                               <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-500 font-bold text-[10px]">
+                                  {u.email.charAt(0).toUpperCase()}
+                               </div>
+                               <p className="text-white text-xs font-bold truncate max-w-[120px]">{u.email}</p>
+                            </div>
+                            <span className="text-white font-mono font-black text-xs">{u.veloCoins.toLocaleString()} $VLO</span>
+                         </div>
+                      ))}
+                   </div>
+                </div>
+             </div>
           </div>
         )}
 
@@ -1597,11 +1997,49 @@ const ReviewSubmission = ({ productId, onSubmit }: { productId: string, onSubmit
   );
 };
 
+const TrendingSection = ({ onSelect }: { onSelect: (id: string) => void }) => {
+   const { products } = useApp();
+   const trending = products.slice(0, 3);
+
+   return (
+     <div className="max-w-7xl mx-auto px-4 md:px-8 pt-12">
+        <div className="flex items-center gap-3 mb-8">
+           <TrendingUp className="text-accent" size={20} />
+           <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Trending Artifacts</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           {trending.map((p, i) => (
+             <motion.div 
+               key={p.id} 
+               initial={{ opacity: 0, x: -20 }}
+               animate={{ opacity: 1, x: 0 }}
+               transition={{ delay: i * 0.1 }}
+               onClick={() => onSelect(p.id)}
+               className="bg-bg-secondary border border-border p-6 rounded-[2rem] flex items-center gap-6 cursor-pointer hover:bg-zinc-800/40 transition-colors group"
+             >
+                <div className="w-20 h-20 rounded-2xl overflow-hidden border border-border shrink-0">
+                   <img src={p.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all opacity-60 group-hover:opacity-100" />
+                </div>
+                <div className="flex-1 min-w-0">
+                   <h4 className="text-white font-bold truncate">{p.name}</h4>
+                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{p.category}</p>
+                   <div className="flex items-center justify-between mt-2">
+                      <span className="text-accent font-mono font-black py-1 px-2 bg-accent/10 rounded-lg text-[10px]">${p.price}</span>
+                      <ArrowRight size={14} className="text-zinc-700 group-hover:text-accent transition-colors" />
+                   </div>
+                </div>
+             </motion.div>
+           ))}
+        </div>
+     </div>
+   );
+};
+
 // --- Main App Logic ---
 
 function AppContent() {
   const { user } = useApp();
-  const [view, setView] = useState<'home' | 'detail' | 'profile' | 'review' | 'admin' | 'shop'>('home');
+  const [view, setView] = useState<'home' | 'detail' | 'profile' | 'review' | 'admin' | 'shop' | 'messages' | 'wishlist'>('home');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [reviewingProductId, setReviewingProductId] = useState<string | null>(null);
 
@@ -1619,12 +2057,18 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-bg-primary text-zinc-300 font-sans selection:bg-accent/20 selection:text-accent flex flex-col overflow-x-hidden">
-      <Navbar onViewChange={setView} currentView={view} />
+      <Navbar onViewChange={setView as any} currentView={view} />
       
       <main className="flex-1">
         <AnimatePresence mode="wait">
           {view === 'home' && (
-            <motion.div key="home">
+            <motion.div 
+              key="home"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <TrendingSection onSelect={handleProductSelect} />
               <Home onProductSelect={handleProductSelect} />
             </motion.div>
           )}
@@ -1633,6 +2077,10 @@ function AppContent() {
               <ProductDetail 
                 productId={selectedProductId} 
                 onBack={() => setView('home')} 
+                onContactSeller={(sellerId) => {
+                  // In a real app we might open the specific thread
+                  setView('messages');
+                }}
               />
             </motion.div>
           )}
@@ -1659,6 +2107,16 @@ function AppContent() {
           {view === 'shop' && (
              <motion.div key="shop">
                 <ShopPanel />
+             </motion.div>
+          )}
+          {view === 'messages' && (
+             <motion.div key="messages">
+                <Messaging />
+             </motion.div>
+          )}
+          {view === 'wishlist' && (
+             <motion.div key="wishlist">
+                <WishlistView />
              </motion.div>
           )}
         </AnimatePresence>

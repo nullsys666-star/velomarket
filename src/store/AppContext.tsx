@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { Product, UserProfile, Review, Order, Transaction } from '../types';
+import { Product, UserProfile, Review, Order, Transaction, Message, VeloNotification } from '../types';
 import { translations, Language } from '../lib/translations';
 import toast from 'react-hot-toast';
 import * as openpgp from 'openpgp';
@@ -11,6 +11,8 @@ interface AppContextType {
   reviews: Review[];
   orders: Order[];
   transactions: Transaction[];
+  messages: Message[];
+  notifications: VeloNotification[];
   language: Language;
   t: typeof translations.EN;
   setLanguage: (lang: Language) => void;
@@ -27,11 +29,16 @@ interface AppContextType {
   updateProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   toggleAdmin: () => void;
-  // New methods
   updateUserProfile: (profile: UserProfile) => void;
   addDisputeMessage: (orderId: string, text: string) => void;
   resolveDispute: (orderId: string, decision: 'refund' | 'dismiss') => void;
   toggleReviewVisibility: (id: string) => void;
+  // New Methods
+  toggleWishlist: (productId: string) => void;
+  sendMessage: (receiverId: string, content: string, subject?: string) => Promise<void>;
+  markNotificationRead: (id: string) => void;
+  clearNotifications: () => void;
+  addNotification: (userId: string, type: VeloNotification['type'], title: string, message: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -47,6 +54,7 @@ const MOCK_PRODUCTS: Product[] = [
     country: 'Switzerland',
     city: 'Zurich',
     sellerId: 'admin',
+    isFeatured: true,
     digitalFile: 'VELO-POD-LICENSE-12345'
   },
   {
@@ -59,6 +67,7 @@ const MOCK_PRODUCTS: Product[] = [
     country: 'Japan',
     city: 'Tokyo',
     sellerId: 'admin',
+    isFeatured: true,
     digitalFile: 'CHRONOS-SMART-FIRMWARE-v2.1'
   },
   {
@@ -88,15 +97,21 @@ const MOCK_PRODUCTS: Product[] = [
 ];
 
 const MOCK_USERS: UserProfile[] = [
-  { id: 'u1', email: 'admin@velo.io', veloCoins: 5000, purchases: [], isAdmin: true, role: 'reseller' },
-  { id: 'u2', email: 'buyer1@protocol.io', veloCoins: 120, purchases: [], isAdmin: false, role: 'buyer' },
-  { id: 'u3', email: 'reseller1@market.io', veloCoins: 450, purchases: [], isAdmin: false, role: 'reseller' },
+  { id: 'u1', email: 'admin@velo.io', veloCoins: 5000, purchases: [], isAdmin: true, role: 'reseller', wishlist: [], reputation: 100 },
+  { id: 'u2', email: 'buyer1@protocol.io', veloCoins: 120, purchases: [], isAdmin: false, role: 'buyer', wishlist: [], reputation: 85 },
+  { id: 'u3', email: 'reseller1@market.io', veloCoins: 450, purchases: [], isAdmin: false, role: 'reseller', wishlist: [], reputation: 92 },
 ];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [users, setUsers] = useState<UserProfile[]>(MOCK_USERS);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [notifications, setNotifications] = useState<VeloNotification[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [language, setLanguage] = useState<Language>('EN');
 
   const register = async (email: string, password: string, passcode: string, role: 'buyer' | 'reseller') => {
     if (password.length < 6) {
@@ -125,7 +140,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAdmin: email.includes('admin'),
         role,
         pgpPublicKey: publicKey,
-        pgpPrivateKey: privateKey
+        pgpPrivateKey: privateKey,
+        wishlist: [],
+        reputation: 0
       };
 
       setUser(newUser);
@@ -142,16 +159,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     toast.success('Logged out.');
   };
 
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [language, setLanguage] = useState<Language>('EN');
-
   const t = translations[language];
+
+  // Helper for adding notifications
+  const addNotification = (userId: string, type: VeloNotification['type'], title: string, message: string) => {
+    const newNotif: VeloNotification = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId,
+      type,
+      title,
+      message,
+      timestamp: new Date().toISOString(),
+      isRead: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
 
   const buyProduct = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (!product || !user) return;
+
+    if (user.veloCoins < product.price) {
+      toast.error('Insufficient VeloCoins');
+      return;
+    }
 
     const newOrder: Order = {
       id: Math.random().toString(36).substr(2, 9).toUpperCase(),
@@ -167,11 +198,80 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!prev) return null;
       return {
         ...prev,
+        veloCoins: prev.veloCoins - product.price,
         purchases: [...prev.purchases, productId]
       };
     });
+
+    addNotification(user.id, 'order', 'Purchase Successful', `You acquired ${product.name}`);
+    addNotification(product.sellerId, 'order', 'Artifact Sold', `Your artifact ${product.name} has been retrieved by a curator`);
     
     toast.success(`Purchased ${product.name}!`);
+  };
+
+  const toggleWishlist = (productId: string) => {
+    if (!user) {
+      toast.error('Login to build a wishlist');
+      return;
+    }
+    const isWishlisted = user.wishlist.includes(productId);
+    const newWishlist = isWishlisted 
+      ? user.wishlist.filter(id => id !== productId)
+      : [...user.wishlist, productId];
+    
+    setUser(prev => prev ? { ...prev, wishlist: newWishlist } : null);
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, wishlist: newWishlist } : u));
+    
+    toast.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist');
+  };
+
+  const sendMessage = async (receiverId: string, content: string, subject?: string) => {
+    if (!user) return;
+    const receiver = users.find(u => u.id === receiverId);
+    if (!receiver) return;
+
+    let finalContent = content;
+    let isEncrypted = false;
+
+    // Encrypt if receiver has public key
+    if (receiver.pgpPublicKey) {
+       try {
+          const message = await openpgp.createMessage({ text: content });
+          const publicKey = await openpgp.readKey({ armoredKey: receiver.pgpPublicKey });
+          const encrypted = await openpgp.encrypt({
+            message,
+            encryptionKeys: publicKey,
+          });
+          finalContent = encrypted as string;
+          isEncrypted = true;
+       } catch (err) {
+          console.error('Encryption failed, sending cleartext', err);
+       }
+    }
+
+    const newMessage: Message = {
+      id: Math.random().toString(36).substr(2, 9),
+      senderId: user.id,
+      receiverId,
+      subject,
+      content: finalContent,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      isEncrypted
+    };
+
+    setMessages(prev => [newMessage, ...prev]);
+    addNotification(receiverId, 'message', 'New Transmission', `Secure message received from node ${user.id.slice(0, 4)}`);
+    toast.success(isEncrypted ? 'Encrypted transmission sent' : 'Message sent');
+  };
+
+  const markNotificationRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  };
+
+  const clearNotifications = () => {
+    if (!user) return;
+    setNotifications(prev => prev.filter(n => n.userId !== user.id));
   };
 
   const submitReview = (productId: string, rating: number, comment: string) => {
@@ -186,7 +286,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString()
     };
 
-    setReviews(prev => [...prev, newReview]);
+    setReviews(prev => {
+      const updatedReviews = [...prev, newReview];
+      
+      // Calculate Seller Reputation
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        const seller = users.find(u => u.id === product.sellerId);
+        if (seller) {
+          const sellerProductIds = products.filter(p => p.sellerId === seller.id).map(p => p.id);
+          const sellerReviews = updatedReviews.filter(r => sellerProductIds.includes(r.productId));
+          const avgRating = sellerReviews.reduce((sum, r) => sum + r.rating, 0) / sellerReviews.length;
+          const newReputation = Math.round(avgRating * 20); // 5 stars = 100%
+
+          setUsers(prevUsers => prevUsers.map(u => u.id === seller.id ? { ...u, reputation: newReputation } : u));
+        }
+      }
+      
+      return updatedReviews;
+    });
     
     setUser(prev => {
       if (!prev) return null;
@@ -343,7 +461,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateUserProfile,
       addDisputeMessage,
       resolveDispute,
-      toggleReviewVisibility
+      toggleReviewVisibility,
+      toggleWishlist,
+      sendMessage,
+      markNotificationRead,
+      clearNotifications,
+      addNotification,
+      messages,
+      notifications
     }}>
       {children}
     </AppContext.Provider>

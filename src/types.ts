@@ -8,6 +8,7 @@ export interface Product {
   country: string;
   city: string;
   sellerId: string;
+  isFeatured?: boolean;
   digitalFile?: string;
 }
 
@@ -62,6 +63,31 @@ export interface UserProfile {
   role: 'buyer' | 'reseller';
   pgpPublicKey?: string;
   pgpPrivateKey?: string;
+  wishlist: string[];
+  reputation: number;
+  avatar?: string;
+  bio?: string;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  subject?: string;
+  content: string; // This would be the encrypted string
+  timestamp: string;
+  isRead: boolean;
+  isEncrypted: boolean;
+}
+
+export interface VeloNotification {
+  id: string;
+  userId: string;
+  type: 'order' | 'message' | 'system' | 'dispute';
+  title: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
 }
 
 export interface AppState {
