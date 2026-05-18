@@ -897,297 +897,389 @@ const Profile = ({ onSelectProductToReview }: { onSelectProductToReview: (id: st
 
   return (
     <div className="flex flex-col lg:flex-row flex-1 overflow-hidden min-h-[calc(100vh-4rem)]">
-      {/* Sidebar Content */}
-      <aside className="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-border bg-bg-secondary flex flex-col">
-        <div className="p-6 md:p-8">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-6 px-1">Active Bounties</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-            {productsToReview.length > 0 ? productsToReview.map(product => (
-              <div key={product.id} className="p-4 rounded-2xl bg-accent/10 border border-accent/20 group cursor-pointer hover:bg-accent/20 transition-colors" onClick={() => onSelectProductToReview(product.id)}>
-                <p className="text-sm font-bold text-white truncate">{product.name}</p>
-                <p className="text-[10px] text-accent mt-1 uppercase tracking-widest font-black">+50 ${t.veloCoins}</p>
+      {/* SIDEBAR: PROTOCOL_TASKS */}
+      <aside className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border bg-bg-secondary flex flex-col">
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <h2 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Operational_Tasks</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="p-6 rounded-[2rem] bg-bg-primary border border-border">
+              <h3 className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-4">Pending_Analysis</h3>
+              <div className="space-y-3">
+                {productsToReview.length > 0 ? productsToReview.map(product => (
+                  <button 
+                    key={product.id} 
+                    className="w-full p-4 rounded-xl bg-accent/5 border border-accent/10 hover:bg-accent/10 transition-all text-left flex items-start gap-3 group"
+                    onClick={() => onSelectProductToReview(product.id)}
+                  >
+                    <div className="mt-1"><Star size={10} className="text-accent" /></div>
+                    <div>
+                      <p className="text-[11px] font-bold text-white group-hover:text-accent transition-colors leading-tight">{product.name}</p>
+                      <p className="text-[9px] text-accent mt-1 font-mono uppercase tracking-tighter">+50 VELO_CREDIT</p>
+                    </div>
+                  </button>
+                )) : (
+                  <p className="text-[10px] text-zinc-700 italic border-t border-zinc-800/50 pt-4 px-1">Network fully synchronized.</p>
+                )}
               </div>
-            )) : (
-              <p className="text-xs text-zinc-600 px-2 italic">Awaiting new artifacts...</p>
-            )}
+            </div>
+
+            <div className="p-6 rounded-[2rem] bg-bg-primary border border-border">
+              <h3 className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-4">Reputation_Rank</h3>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-black text-white font-mono leading-none">{user.reputation}%</span>
+                <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest pb-1">Verified</span>
+              </div>
+              <div className="w-full bg-zinc-900 h-1 rounded-full mt-4 overflow-hidden">
+                <div className="bg-accent h-full transition-all duration-1000" style={{ width: `${user.reputation}%` }} />
+              </div>
+            </div>
           </div>
         </div>
-        <div className="mt-auto hidden lg:block p-8 border-t border-border">
-          <div className="bg-accent/5 rounded-2xl p-5 border border-accent/10">
-            <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em] mb-2">Protocol Tip</p>
-            <p className="text-xs leading-relaxed text-zinc-500">Thorough analysis of design and function increases helpfulness ranking.</p>
+        
+        <div className="mt-auto hidden lg:block p-8 border-t border-border bg-black/20">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-[9px] font-mono uppercase tracking-widest text-zinc-600">
+              <span>Sync_Status</span>
+              <span className="text-accent">Nominal</span>
+            </div>
+            <div className="flex items-center justify-between text-[9px] font-mono uppercase tracking-widest text-zinc-600">
+              <span>Identity_Lock</span>
+              <span className="text-white">Active</span>
+            </div>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 bg-bg-primary overflow-y-auto p-4 md:p-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-12">
-            <div className="flex-1 bg-bg-secondary border border-border p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] flex items-center justify-between relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-               <div className="flex items-center gap-4 md:gap-6 relative">
-                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-zinc-800 flex items-center justify-center text-white font-bold text-lg md:text-xl uppercase">
-                     {user.email.charAt(0)}
-                  </div>
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">{user.email.split('@')[0]}</h2>
-                    <p className="text-zinc-600 text-[10px] md:text-xs font-mono uppercase truncate max-w-[150px] md:max-w-none">{user.email}</p>
-                  </div>
-               </div>
+      {/* MAIN: COMMAND_CENTER */}
+      <main className="flex-1 bg-bg-primary overflow-y-auto">
+        <div className="max-w-5xl mx-auto p-6 md:p-12 space-y-12 pb-32">
+          
+          {/* SECTION: IDENTITY_PROTOCOL */}
+          <section>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="px-2 py-0.5 bg-accent/20 border border-accent/30 rounded text-[8px] font-black text-accent uppercase tracking-widest">Protocol.01</div>
+              <h2 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Identity_Protocol</h2>
             </div>
 
-            {user.pgpPublicKey && (
-              <div className="md:col-span-2 bg-bg-secondary border border-border p-8 rounded-[2.5rem] relative overflow-hidden group">
-                <div className="flex justify-between items-center mb-4">
-                  <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">PGP Protocol Identity (Public Key)</p>
-                  <button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(user.pgpPublicKey!);
-                      toast.success('Public Key copied to clipboard');
-                    }}
-                    className="text-[9px] font-black text-accent uppercase hover:text-white transition-colors"
-                  >
-                    Copy Key
-                  </button>
-                </div>
-                <div className="bg-black/30 p-4 rounded-xl border border-zinc-800 font-mono text-[9px] text-zinc-500 overflow-x-auto whitespace-pre">
-                  {user.pgpPublicKey}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-1 bg-bg-secondary border border-border p-8 rounded-[2.5rem] relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="flex flex-col items-center text-center relative gap-4">
+                  <div className="w-20 h-20 rounded-3xl bg-zinc-900 border border-border flex items-center justify-center text-accent text-3xl font-black uppercase ring-4 ring-bg-primary shadow-2xl">
+                    {user.email.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white tracking-tight">{user.email.split('@')[0]}</h3>
+                    <p className="text-[10px] text-zinc-500 font-mono uppercase mt-1">U-{user.id.slice(0, 8)}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="px-3 py-1 bg-zinc-900 border border-border rounded-full text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none flex items-center">
+                      {user.role}
+                    </span>
+                    <span className="px-3 py-1 bg-accent/5 border border-accent/20 rounded-full text-[8px] font-black text-accent uppercase tracking-widest leading-none flex items-center">
+                      Level.0{Math.floor(user.reputation / 20) + 1}
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
 
-            <div className="bg-accent text-black p-8 md:px-10 md:py-8 rounded-[2.5rem] md:rounded-[3rem] flex flex-col justify-between shadow-2xl relative min-w-full md:min-w-[280px]">
-               <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">{t.totalAssets}</span>
-                <div className="flex items-center gap-3">
-                  <Coins size={24} />
-                  <span className="text-2xl md:text-3xl font-black font-mono tracking-tight">{user.veloCoins.toLocaleString()}</span>
+              <div className="md:col-span-2 bg-bg-secondary border border-border p-8 rounded-[2.5rem] flex flex-col justify-between relative overflow-hidden group">
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">PGP_Vault_Credential</h4>
+                    <button 
+                      onClick={() => {
+                        if (user.pgpPublicKey) {
+                          navigator.clipboard.writeText(user.pgpPublicKey);
+                          toast.success('Public Key copied to clipboard');
+                        }
+                      }}
+                      className="p-2 bg-bg-primary rounded-xl border border-border text-zinc-500 hover:text-accent transition-colors"
+                    >
+                      <Key size={14} />
+                    </button>
+                  </div>
+                  <div className="bg-black/40 p-5 rounded-2xl border border-zinc-800 font-mono text-[10px] text-zinc-500 overflow-x-auto whitespace-pre leading-relaxed h-[120px] custom-scrollbar">
+                    {user.pgpPublicKey || 'ENCRYPTION_KEY_NOT_INITIALIZED'}
+                  </div>
                 </div>
-               </div>
-               
-               <button 
-                onClick={() => setShowBuyCoins(true)}
-                className="mt-6 w-full bg-black text-white hover:bg-zinc-900 border border-black/10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
-               >
-                Buy VELO with Crypto
-               </button>
+              </div>
             </div>
-          </div>
+          </section>
 
-          <AnimatePresence>
-            {showBuyCoins && (
-              <motion.div 
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="mb-12 p-10 bg-zinc-900 border border-accent/20 rounded-[3rem] overflow-hidden"
-              >
-                <div className="flex justify-between items-start mb-8">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-1">Inbound Protocol: Crypto → VELO</h3>
-                    <p className="text-zinc-500 text-xs uppercase font-bold tracking-widest">Send assets to address below</p>
+          {/* SECTION: ASSET_MANAGEMENT */}
+          <section>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="px-2 py-0.5 bg-accent/20 border border-accent/30 rounded text-[8px] font-black text-accent uppercase tracking-widest">Protocol.02</div>
+              <h2 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Asset_Management</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-accent p-8 rounded-[2.5rem] flex flex-col justify-between shadow-2xl relative group">
+                <div className="absolute top-4 right-4 text-black/20 group-hover:scale-110 transition-transform"><Coins size={40} /></div>
+                <div>
+                  <p className="text-[10px] font-black text-black/60 uppercase tracking-widest mb-1">Velo_Credit_Balance</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-4xl font-black text-black font-mono tracking-tighter">{user.veloCoins.toLocaleString()}</span>
+                    <span className="text-xs font-black text-black/60 uppercase self-end pb-1.5">$V</span>
                   </div>
-                  <button onClick={() => setShowBuyCoins(false)} className="text-zinc-500 hover:text-white p-2"><ChevronLeft size={20} className="rotate-90" /></button>
                 </div>
+                <button 
+                  onClick={() => setShowBuyCoins(!showBuyCoins)}
+                  className="mt-8 w-full bg-black text-white hover:bg-zinc-900 border border-black/10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Acquire Credits
+                </button>
+              </div>
 
-                <div className="bg-black/50 border border-zinc-800 p-5 rounded-2xl mb-8 font-mono text-xs text-accent break-all select-all flex items-center justify-between">
-                  <span>0x71C7656EC7ab88b098defB751B7401B5f6d8976F</span>
-                  <Globe size={14} />
+              <div className="md:col-span-2 bg-bg-secondary border border-border p-8 rounded-[2.5rem] grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex flex-col p-4 bg-bg-primary rounded-2xl border border-border hover:border-accent/30 transition-colors">
+                  <span className="text-xl font-black text-white font-mono">{orders.length}</span>
+                  <span className="text-[8px] text-zinc-600 uppercase font-black tracking-widest mt-1">Total_Acquisitions</span>
                 </div>
+                <div className="flex flex-col p-4 bg-bg-primary rounded-2xl border border-border hover:border-accent/30 transition-colors">
+                  <span className="text-xl font-black text-accent font-mono">{reviews.length}</span>
+                  <span className="text-[8px] text-zinc-600 uppercase font-black tracking-widest mt-1">Data_Submissions</span>
+                </div>
+                <div className="flex flex-col p-4 bg-bg-primary rounded-2xl border border-border hover:border-accent/30 transition-colors">
+                  <span className="text-xl font-black text-white font-mono">{transactions.filter(t => t.status === 'approved').length}</span>
+                  <span className="text-[8px] text-zinc-600 uppercase font-black tracking-widest mt-1">Network_Syncs</span>
+                </div>
+                <div className="flex flex-col p-4 bg-bg-primary rounded-2xl border border-border hover:border-accent/30 transition-colors">
+                  <span className="text-xl font-black text-accent font-mono">{user.purchases.length}</span>
+                  <span className="text-[8px] text-zinc-600 uppercase font-black tracking-widest mt-1">Artifact_Vault</span>
+                </div>
+              </div>
+            </div>
 
-                <form onSubmit={handlePayment} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                       <label className="text-[10px] uppercase font-black text-zinc-500 tracking-widest ml-1">Asset Quantity ($VELO)</label>
-                       <input 
-                        type="number" 
-                        value={amount}
-                        onChange={(e) => setAmount(Number(e.target.value))}
-                        className="w-full bg-bg-primary border border-border rounded-2xl p-4 text-white focus:outline-none focus:border-accent font-mono"
-                       />
+            <AnimatePresence>
+              {showBuyCoins && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                  animate={{ height: 'auto', opacity: 1, marginTop: 24 }}
+                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                  className="overflow-hidden bg-bg-secondary border border-accent/20 rounded-[2.5rem] p-8 md:p-10"
+                >
+                  <div className="max-w-2xl mx-auto space-y-8">
+                    <div className="text-center">
+                      <h3 className="text-xl font-bold text-white mb-2">Crypto Asset Acquisition</h3>
+                      <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">Protocol: Direct Transfer → Velo Credits</p>
                     </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] uppercase font-black text-zinc-500 tracking-widest ml-1">Transaction Proof (TXID)</label>
-                       <input 
-                        type="text" 
-                        placeholder="0x..."
-                        value={txId}
-                        onChange={(e) => setTxId(e.target.value)}
-                        className="w-full bg-bg-primary border border-border rounded-2xl p-4 text-white focus:outline-none focus:border-accent font-mono placeholder:text-zinc-800"
-                        required
-                       />
-                    </div>
-                  </div>
-                  <button type="submit" className="w-full bg-accent text-black font-black py-5 rounded-2xl uppercase tracking-[0.2em] text-xs hover:bg-accent/80 transition-all shadow-xl">
-                    Submit Payment Signal
-                  </button>
-                </form>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
-          <div className="space-y-16">
-            <div className="flex flex-col">
-              <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.3em] mb-6 px-1">Order History & Archives</h3>
-              <div className="space-y-4">
-                {orders.length > 0 ? orders.map(order => {
-                  const product = products.find(p => p.id === order.productId);
-                  return (
-                   <div key={order.id} className="bg-bg-secondary border border-border p-8 rounded-[2.5rem] flex flex-col gap-8 transition-all hover:border-zinc-800">
-                      <div className="flex flex-col md:flex-row justify-between gap-6">
-                        <div className="flex items-center gap-6">
-                          <img src={product?.image} className="w-20 h-20 rounded-2xl object-cover grayscale opacity-80" />
-                          <div>
-                            <h4 className="text-lg font-bold text-white transition-colors">{product?.name}</h4>
-                            <p className="text-[10px] text-zinc-600 font-mono tracking-tighter mt-1 uppercase">ARCHIVE ID: {order.id}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-end md:items-start flex-col">
-                          <span className="text-2xl font-bold text-white tracking-tighter">${order.price}</span>
-                          <div className={cn(
-                            "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest mt-2 border",
-                            order.status === 'completed' ? "bg-accent/5 border-accent/20 text-accent" : 
-                            order.status === 'disputed' ? "bg-yellow-500/5 border-yellow-500/20 text-yellow-500" : "bg-red-500/5 border-red-500/20 text-red-500"
-                          )}>
-                            {order.status}
-                          </div>
-                        </div>
+                    <div className="bg-black/50 border border-zinc-800 p-6 rounded-2xl font-mono text-xs text-accent break-all text-center relative group">
+                      <p className="text-[8px] text-zinc-700 uppercase mb-2">Network_Destination</p>
+                      <span className="block mb-2">0x71C7656EC7ab88b098defB751B7401B5f6d8976F</span>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText('0x71C7656EC7ab88b098defB751B7401B5f6d8976F');
+                          toast.success('Wallet address copied');
+                        }}
+                        className="text-[9px] text-zinc-600 uppercase hover:text-white"
+                      >
+                        [ Copy_Address ]
+                      </button>
+                    </div>
+
+                    <form onSubmit={handlePayment} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[9px] uppercase font-black text-zinc-600 tracking-widest ml-1">Asset_Amount ($V)</label>
+                        <input 
+                          type="number" 
+                          value={amount}
+                          onChange={(e) => setAmount(Number(e.target.value))}
+                          className="w-full bg-bg-primary border border-border rounded-xl p-4 text-white focus:outline-none focus:border-accent font-mono text-sm"
+                        />
                       </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] uppercase font-black text-zinc-600 tracking-widest ml-1">Transaction_TXID</label>
+                        <input 
+                          type="text" 
+                          placeholder="0x..."
+                          value={txId}
+                          onChange={(e) => setTxId(e.target.value)}
+                          className="w-full bg-bg-primary border border-border rounded-xl p-4 text-white focus:outline-none focus:border-accent font-mono text-sm placeholder:text-zinc-800"
+                          required
+                        />
+                      </div>
+                      <button type="submit" className="md:col-span-2 w-full bg-accent text-black font-black py-4 rounded-xl uppercase tracking-[0.2em] text-xs hover:bg-white transition-all shadow-xl shadow-accent/5">
+                        Broadcast Payment Signal
+                      </button>
+                    </form>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
 
-                      <div className="flex justify-between items-center border-t border-border pt-6">
-                         <span className="text-[10px] text-zinc-600 font-mono uppercase">{new Date(order.date).toLocaleString()}</span>
-                         <div className="flex gap-6">
+          {/* SECTION: ACQUISITION_ARCHIVE */}
+          <section>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="px-2 py-0.5 bg-accent/20 border border-accent/30 rounded text-[8px] font-black text-accent uppercase tracking-widest">Protocol.03</div>
+              <h2 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Acquisition_Archive</h2>
+            </div>
+
+            <div className="space-y-4">
+              {orders.length > 0 ? [...orders].reverse().map(order => {
+                const product = products.find(p => p.id === order.productId);
+                return (
+                  <div key={order.id} className="bg-bg-secondary border border-border p-6 md:p-8 rounded-[2rem] hover:border-zinc-800 transition-all group">
+                    <div className="flex flex-col md:flex-row gap-8">
+                      <div className="w-full md:w-32 h-32 md:h-32 rounded-2xl overflow-hidden bg-bg-primary grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all border border-border">
+                        <img src={product?.image} className="w-full h-full object-cover" />
+                      </div>
+                      
+                      <div className="flex-1 flex flex-col justify-between py-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="text-xl font-bold text-white transition-colors">{product?.name || 'Unknown Artifact'}</h4>
+                            <p className="text-[9px] text-zinc-600 font-mono tracking-tighter mt-1 uppercase">ID: {order.id}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-black text-white font-mono leading-none">${order.price}</p>
+                            <div className={cn(
+                              "inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest mt-2 border",
+                              order.status === 'completed' ? "bg-accent/5 border-accent/20 text-accent" : 
+                              order.status === 'disputed' ? "bg-yellow-500/5 border-yellow-500/20 text-yellow-500" : "bg-red-500/5 border-red-500/20 text-red-500"
+                            )}>
+                              {order.status}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-4 mt-8 pt-6 border-t border-zinc-800/50">
+                          <div className="flex items-center gap-4">
+                            <span className="text-[9px] text-zinc-500 font-mono uppercase">{new Date(order.date).toLocaleDateString()}</span>
+                            <span className="text-[9px] text-zinc-700 font-mono uppercase">{new Date(order.date).toLocaleTimeString()}</span>
+                          </div>
+                          
+                          <div className="flex gap-6">
                             {order.status === 'completed' && (
                               <button 
-                                onClick={() => setDisputeOpen(order.id)}
-                                className="text-[10px] font-black text-red-500 uppercase tracking-widest hover:text-red-400 transition-colors"
+                                onClick={() => setDisputeOpen(disputeOpen === order.id ? null : order.id)}
+                                className="text-[9px] font-black text-red-500 uppercase tracking-widest hover:text-red-400 transition-colors"
                               >
-                                Initialize Dispute
+                                {disputeOpen === order.id ? 'Abort_Dispute' : 'Init_Dispute'}
                               </button>
                             )}
                             {order.status === 'completed' && product?.digitalFile && (
                               <button 
                                 onClick={() => setShowPayload(showPayload === order.id ? null : order.id)}
                                 className={cn(
-                                  "text-[10px] font-black uppercase tracking-widest transition-colors",
+                                  "text-[9px] font-black uppercase tracking-widest transition-colors",
                                   showPayload === order.id ? "text-white" : "text-accent hover:text-white"
                                 )}
                               >
-                                {showPayload === order.id ? 'Hide Payload' : 'Access Payload'}
+                                [ {showPayload === order.id ? 'Lock_Archive' : 'Access_Payload'} ]
                               </button>
                             )}
                             {order.status === 'disputed' && (
                               <button 
                                 onClick={() => setDisputeOpen(disputeOpen === order.id ? null : order.id)}
                                 className={cn(
-                                  "text-[10px] font-black uppercase tracking-widest transition-colors",
+                                  "text-[9px] font-black uppercase tracking-widest transition-colors",
                                   disputeOpen === order.id ? "text-white" : "text-yellow-500 hover:text-white"
                                 )}
                               >
-                                {disputeOpen === order.id ? 'Close Logs' : 'Open Dispute Logs'}
+                                [ {disputeOpen === order.id ? 'Close_Logs' : 'Open_Dispute_Logs'} ]
                               </button>
                             )}
-                         </div>
+                          </div>
+                        </div>
                       </div>
+                    </div>
 
-                      <AnimatePresence>
-                        {order.status === 'disputed' && disputeOpen === order.id && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden space-y-6 pt-6 border-t border-dashed border-border mt-4">
-                             <div className="flex justify-between items-center px-1">
-                                <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Active Arbitration Conversation</p>
-                                <span className="text-[9px] text-zinc-600 italic">Messages are transmitted via encrypted protocol</span>
+                    <AnimatePresence>
+                      {/* Sub-panels for payload and disputes */}
+                      {showPayload === order.id && product?.digitalFile && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-6">
+                          <div className="p-8 rounded-[2rem] bg-accent/5 border border-accent/20">
+                            <div className="flex items-center gap-3 mb-4">
+                              <Shield size={14} className="text-accent" />
+                              <p className="text-[10px] font-black text-accent uppercase tracking-widest">DECRYPTED_PAYLOAD_DATA</p>
+                            </div>
+                            <div className="bg-black/50 p-6 rounded-2xl border border-accent/10 font-mono text-xs text-white break-all select-all leading-relaxed shadow-inner">
+                              {product.digitalFile}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {order.status === 'disputed' && disputeOpen === order.id && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-6">
+                          <div className="p-8 rounded-[2rem] bg-bg-primary border border-zinc-800">
+                             <div className="flex justify-between items-center mb-6">
+                                <h5 className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Encrypted_Dispute_Transmission</h5>
+                                <span className="text-[9px] text-zinc-600 font-mono">STATUS: ACTIVE_ARBITRATION</span>
                              </div>
-                             <div className="bg-bg-primary/50 border border-border rounded-2xl p-6 h-64 overflow-y-auto space-y-4 font-mono text-[10px]">
+
+                             <div className="h-64 overflow-y-auto space-y-4 mb-6 pr-2 custom-scrollbar">
                                 {order.disputeMessages?.map(msg => (
                                    <div key={msg.id} className={cn(
-                                     "p-3 rounded-lg border max-w-[85%]",
-                                     msg.senderId === user.id ? "ml-auto bg-accent/5 border-accent/20 text-accent text-right" : "mr-auto bg-bg-secondary border-border text-zinc-400"
+                                     "p-4 rounded-2xl border max-w-[85%]",
+                                     msg.senderId === user.id ? "ml-auto bg-accent/5 border-accent/20 text-accent" : "mr-auto bg-bg-secondary border-border text-zinc-400"
                                    )}>
-                                      <div className="flex gap-2 mb-1 justify-between">
-                                         <span className="font-black uppercase tracking-widest">{msg.senderRole}</span>
-                                         <span className="opacity-40">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                      <div className="flex justify-between gap-4 mb-2 pb-2 border-b border-white/5">
+                                         <span className="text-[9px] font-black uppercase tracking-widest">{msg.senderRole}</span>
+                                         <span className="text-[8px] opacity-40 font-mono">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                       </div>
-                                      <p className="leading-relaxed">{msg.text}</p>
+                                      <p className="text-[11px] leading-relaxed">{msg.text}</p>
                                    </div>
                                 ))}
-                                {(!order.disputeMessages || order.disputeMessages.length === 0) && (
-                                   <p className="text-zinc-800 text-center py-20 italic">Awaiting response artifacts...</p>
-                                )}
                              </div>
+
                              <div className="relative">
                                <input 
-                                 placeholder="Transmit details to arbitrator..."
+                                 placeholder="Transmit signal to arbitrator..."
                                  onKeyDown={(e) => {
                                     if (e.key === 'Enter' && e.currentTarget.value) {
                                        addDisputeMessage(order.id, e.currentTarget.value);
                                        e.currentTarget.value = '';
                                     }
                                  }}
-                                 className="w-full bg-bg-primary border border-border p-4 pr-12 rounded-xl text-white text-xs focus:outline-none focus:border-accent"
+                                 className="w-full bg-bg-secondary border border-border p-4 pr-12 rounded-xl text-white text-xs focus:outline-none focus:border-accent"
                                />
                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-accent opacity-50"><ArrowRight size={16} /></div>
                              </div>
-                          </motion.div>
-                        )}
-                        {showPayload === order.id && product?.digitalFile && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pt-4 border-t border-dashed border-border mt-4">
-                             <div className="bg-accent/5 border border-accent/20 p-6 rounded-2xl">
-                               <p className="text-[10px] font-black text-accent uppercase tracking-widest mb-3">Decrypted Digital Payload</p>
-                               <div className="bg-black/40 p-4 rounded-xl border border-accent/10 font-mono text-xs text-white break-all select-all">
-                                 {product.digitalFile}
-                               </div>
-                             </div>
-                          </motion.div>
-                        )}
-                        {disputeOpen === order.id && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden space-y-4 pt-4 border-t border-dashed border-border">
-                            <label className="text-[10px] font-black text-red-500 uppercase tracking-widest">Dispute Reason Protocol</label>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {order.status === 'completed' && disputeOpen === order.id && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-6">
+                          <div className="p-8 rounded-[2rem] bg-red-950/20 border border-red-900/40 space-y-6">
+                            <div>
+                              <h5 className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Initialization_Protocol: Dispute</h5>
+                              <p className="text-xs text-zinc-500">Provide analysis of protocol failure or artifact defect.</p>
+                            </div>
                             <textarea 
-                              placeholder="Describe the failure in protocol or physical defect..."
-                              className="w-full bg-bg-primary border border-border rounded-2xl p-6 text-sm text-zinc-300 h-28 focus:outline-none focus:border-red-500 font-light"
+                              placeholder="Technical details of the dispute..."
+                              className="w-full bg-black/40 border border-red-900/30 rounded-2xl p-6 text-sm text-white h-32 focus:outline-none focus:border-red-500 font-light resize-none"
                               value={disputeReason}
                               onChange={(e) => setDisputeReason(e.target.value)}
                             />
-                            <div className="flex gap-4">
-                              <button onClick={() => setDisputeOpen(null)} className="flex-1 bg-zinc-800 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest">Abort</button>
-                              <button onClick={() => handleDispute(order.id)} className="flex-1 bg-red-600 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-600/10">Submit Signal</button>
+                            <div className="grid grid-cols-2 gap-4">
+                              <button onClick={() => setDisputeOpen(null)} className="bg-zinc-900 text-zinc-500 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest border border-border hover:text-white transition-colors">Abort_Signal</button>
+                              <button onClick={() => handleDispute(order.id)} className="bg-red-600 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-600/20">Submit_Conflict_Log</button>
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                   </div>
-                  );
-                }) : (
-                  <div className="py-24 text-center bg-bg-secondary/30 rounded-[3rem] border border-dashed border-border">
-                    <p className="text-zinc-700 text-[10px] uppercase font-black tracking-[0.2em]">Archive Empty</p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                )}
-              </div>
+                );
+              }) : (
+                <div className="py-24 text-center bg-bg-secondary/30 rounded-[3rem] border border-dashed border-border flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 rounded-full border border-zinc-800 flex items-center justify-center text-zinc-800"><Shield size={24} /></div>
+                  <p className="text-zinc-700 text-[10px] uppercase font-black tracking-[0.2em]">Archive_Null: No records found</p>
+                </div>
+              )}
             </div>
-            
-            <div className="flex flex-col">
-              <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.3em] mb-6 px-1">Network Metrics</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-bg-secondary border border-border p-8 rounded-[2rem] hover:border-zinc-800 transition-colors">
-                  <div className="text-3xl font-mono font-black text-white mb-1">{reviews.length}</div>
-                  <div className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">{t.submissions}</div>
-                </div>
-                <div className="bg-bg-secondary border border-border p-8 rounded-[2rem] hover:border-zinc-800 transition-colors">
-                  <div className="text-3xl font-mono font-black text-accent mb-1">{user.veloCoins / 50}</div>
-                  <div className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">Bounties</div>
-                </div>
-                <div className="bg-bg-secondary border border-border p-8 rounded-[2rem] hover:border-zinc-800 transition-colors">
-                  <div className="text-3xl font-mono font-black text-white mb-1">{orders.length}</div>
-                  <div className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">Orders</div>
-                </div>
-                <div className="bg-bg-secondary border border-border p-8 rounded-[2rem] hover:border-zinc-800 transition-colors">
-                  <div className="text-3xl font-mono font-black text-accent mb-1">{transactions.filter(tx => tx.status === 'approved').length}</div>
-                  <div className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">Nodes Sync</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          </section>
+
         </div>
       </main>
     </div>
