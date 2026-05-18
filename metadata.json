@@ -1,0 +1,8 @@
+{
+  "name": "VeloMarket",
+  "description": "A high-performance e-commerce platform featuring a unique VeloCoins reward system. Purchase products, leave reviews, and earn virtual currency.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
